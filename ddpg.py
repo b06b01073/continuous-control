@@ -3,14 +3,15 @@ import torch
 import torch.optim as optim
 import numpy as np
 
-
-from random_process import OrnsteinUhlenbeckProcess
+from random_process import GaussianNoise
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'training on {device}')
 
-class Agent:
-    def __init__(self, obs_dim, action_dim, action_low, action_high, gamma=0.99, tau=0.01):
+class Agent(nn.Module):
+    def __init__(self, obs_dim, action_dim, action_low, action_high, gamma=0.99, tau=0.001, add_noise=True):
+        super().__init__()
+
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.gamma = gamma
@@ -31,22 +32,29 @@ class Agent:
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_(param.data)
 
-        self.ou_process = OrnsteinUhlenbeckProcess(size=self.action_dim)
+        self.gaussian_noise = GaussianNoise(size=self.action_dim)
 
         self.mse = nn.MSELoss()
 
-        self.critic_optim = optim.Adam(params=self.critic.parameters(), lr=1e-2, weight_decay=1e-2)
-        self.actor_optim = optim.Adam(params=self.actor.parameters(), lr=1e-3)
+        self.critic_optim = optim.Adam(params=self.critic.parameters(), lr=1e-3, weight_decay=1e-2)
+        self.actor_optim = optim.Adam(params=self.actor.parameters(), lr=1e-4)
 
+
+        self.add_noise = add_noise
 
     def step(self, obs):
         with torch.no_grad():
             obs = torch.from_numpy(obs).to(torch.float32).to(device)
             action = self.actor(obs).cpu().detach().numpy()
-            noise = self.ou_process.sample()
+
+            if self.add_noise:
+                action += self.gaussian_noise.sample()
 
             return np.clip(action, a_max=self.action_high, a_min=self.action_low)
         
+    def reset_noise(self):
+        self.gaussian_noise.reset()
+
     def learn(self, experiences):
         if experiences is None:
             return
@@ -88,36 +96,47 @@ class Agent:
             target_param.data.copy_(self.tau * param.data + (1.0 - self.tau) * target_param.data)
 
 class Critic(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim=128):
+    def __init__(self, input_dim, output_dim):
         super().__init__()
         self.hidden_dim0 = 400
-        self.hidden_dim1 = 200
-        self.net = nn.Sequential(
-            nn.Linear(in_features=input_dim, out_features=self.hidden_dim0),
-            nn.ReLU(),
-            nn.Linear(in_features=self.hidden_dim0, out_features=self.hidden_dim1),
-            nn.ReLU(),
-            nn.Linear(in_features=self.hidden_dim1, out_features=output_dim),
-        )
+        self.hidden_dim1 = 300
+        self.fc1 = nn.Linear(in_features=input_dim, out_features=self.hidden_dim0)
+        self.fc2 = nn.Linear(in_features=self.hidden_dim0, out_features=self.hidden_dim1)
+        self.fc3 = nn.Linear(in_features=self.hidden_dim1, out_features=output_dim)
+
+        self.relu = nn.ReLU()
+
+        torch.nn.init.uniform_(self.fc1.weight, a=-3e-3, b=3e-3)
+        torch.nn.init.uniform_(self.fc2.weight, a=-3e-3, b=3e-3)
+        torch.nn.init.uniform_(self.fc3.weight, a=-3e-3, b=3e-3)
 
     def forward(self, obs, action):
         input = torch.cat((obs, action), dim=1)
-        return self.net(input)
+        output = self.relu(self.fc1(input))
+        output = self.relu(self.fc2(output))
+        output = self.fc3(output)
+
+        return output
     
 class Actor(nn.Module):
-    def __init__(self, input_dim, output_dim=1, hidden_dim=128, scale=1):
+    def __init__(self, input_dim, output_dim=1, scale=1):
         super().__init__()
         self.scale = scale
         self.hidden_dim0 = 400
-        self.hidden_dim1 = 200
-        self.net = nn.Sequential(
-            nn.Linear(in_features=input_dim, out_features=self.hidden_dim0),
-            nn.ReLU(),
-            nn.Linear(in_features=self.hidden_dim0, out_features=self.hidden_dim1),
-            nn.ReLU(),
-            nn.Linear(in_features=self.hidden_dim1, out_features=output_dim),
-        )
+        self.hidden_dim1 = 300
+        self.fc1 = nn.Linear(in_features=input_dim, out_features=self.hidden_dim0)
+        self.fc2 = nn.Linear(in_features=self.hidden_dim0, out_features=self.hidden_dim1)
+        self.fc3 = nn.Linear(in_features=self.hidden_dim1, out_features=output_dim)
+
+        self.relu = nn.ReLU()
+
+        torch.nn.init.uniform_(self.fc1.weight, a=-3e-3, b=3e-3)
+        torch.nn.init.uniform_(self.fc2.weight, a=-3e-3, b=3e-3)
+        torch.nn.init.uniform_(self.fc3.weight, a=-3e-3, b=3e-3)
 
     def forward(self, obs):
-        obs = self.scale * nn.Tanh()(self.net(obs))
-        return obs
+        output = self.relu(self.fc1(obs))
+        output = self.relu(self.fc2(output))
+        output = self.fc3(output)
+
+        return nn.Tanh()(output)
