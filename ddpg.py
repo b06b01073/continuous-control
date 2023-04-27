@@ -9,7 +9,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'training on {device}')
 
 class Agent(nn.Module):
-    def __init__(self, obs_dim, action_dim, action_low, action_high, gamma=0.99, tau=0.001, add_noise=True):
+    def __init__(self, obs_dim, action_dim, action_low, action_high, gamma=0.99, tau=0.001, noise=0.1, add_noise=True):
         super().__init__()
 
         self.obs_dim = obs_dim
@@ -32,7 +32,7 @@ class Agent(nn.Module):
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_(param.data)
 
-        self.gaussian_noise = GaussianNoise(size=self.action_dim)
+        self.gaussian_noise = GaussianNoise(size=self.action_dim, scale=noise)
 
         self.mse = nn.MSELoss()
 
@@ -74,7 +74,6 @@ class Agent(nn.Module):
         loss = self.mse(y.detach(), q)
         loss.backward()
 
-        # nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
         self.critic_optim.step()
 
 
@@ -84,7 +83,6 @@ class Agent(nn.Module):
         
         self.actor_optim.zero_grad()
         grad.backward()
-        # nn.utils.clip_grad_norm_(self.actor.parameters(), 1)
         self.actor_optim.step()
 
         
