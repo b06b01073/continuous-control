@@ -1,8 +1,6 @@
 # continuous-control
-This repo is an implementation of the research paper "[Deep Deterministic Policy Gradient](https://arxiv.org/abs/1509.02971)" with slight modificatin listed as follow:
+This repo is an implementation of the research paper "[Deep Deterministic Policy Gradient](https://arxiv.org/abs/1509.02971)".
 
-* I use Gaussian noise to replace Ornstein-Uhlenbeck process
-* LayerNorm are added in the network
 
 # Files
 * train.py: train the agent
