@@ -27,9 +27,7 @@ def train(args):
         total_reward = 0
         obs = env.reset()
         agent.reset_noise()
-        steps = 0
         while True:
-            steps += 1
             action = agent.step(obs)
             next_obs, reward, terminated, _ = env.step(action)
 
@@ -40,9 +38,6 @@ def train(args):
             agent.soft_update()
 
             total_reward += reward
-
-            if steps % 1000 == 0:
-                agent.reset_noise()
 
             if terminated:
                 break
@@ -71,8 +66,8 @@ def train(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--batch_size', '-b', type=int, default=128)
-    parser.add_argument('--epoch', '-e', type=int, default=200)
+    parser.add_argument('--batch_size', '-b', type=int, default=64)
+    parser.add_argument('--epoch', '-e', type=int, default=800)
     parser.add_argument('--env', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--capacity', '-c', type=int, default=100000)
 
