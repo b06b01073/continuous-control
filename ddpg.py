@@ -67,14 +67,14 @@ class Agent(nn.Module):
         self.update_critic(obs, actions, rewards, next_obs, terminated)
 
     def update_critic(self, obs, actions, rewards, next_obs, terminated):
-        y = rewards + (1 - terminated) * self.gamma * self.target_critic(next_obs, self.target_actor(next_obs)).squeeze().detach()
+        y = rewards + (1 - terminated) * self.gamma * self.target_critic(next_obs, self.target_actor(next_obs)).squeeze()
         q = self.critic(obs, actions).squeeze()
 
         self.critic_optim.zero_grad()
-        loss = self.mse(y, q)
+        loss = self.mse(y.detach(), q)
         loss.backward()
 
-        nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
+        # nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
         self.critic_optim.step()
 
 
@@ -84,7 +84,7 @@ class Agent(nn.Module):
         
         self.actor_optim.zero_grad()
         grad.backward()
-        nn.utils.clip_grad_norm_(self.actor.parameters(), 1)
+        # nn.utils.clip_grad_norm_(self.actor.parameters(), 1)
         self.actor_optim.step()
 
         
@@ -104,6 +104,9 @@ class Critic(nn.Module):
         self.fc2 = nn.Linear(in_features=self.hidden_dim0, out_features=self.hidden_dim1)
         self.fc3 = nn.Linear(in_features=self.hidden_dim1, out_features=output_dim)
 
+        self.ln1 = nn.LayerNorm(self.hidden_dim0)
+        self.ln2 = nn.LayerNorm(self.hidden_dim1)
+
         self.relu = nn.ReLU()
 
         torch.nn.init.uniform_(self.fc1.weight, a=-3e-3, b=3e-3)
@@ -112,8 +115,8 @@ class Critic(nn.Module):
 
     def forward(self, obs, action):
         input = torch.cat((obs, action), dim=1)
-        output = self.relu(self.fc1(input))
-        output = self.relu(self.fc2(output))
+        output = self.ln1(self.relu(self.fc1(input)))
+        output = self.ln2(self.relu(self.fc2(output)))
         output = self.fc3(output)
 
         return output
@@ -128,6 +131,9 @@ class Actor(nn.Module):
         self.fc2 = nn.Linear(in_features=self.hidden_dim0, out_features=self.hidden_dim1)
         self.fc3 = nn.Linear(in_features=self.hidden_dim1, out_features=output_dim)
 
+        self.ln1 = nn.LayerNorm(self.hidden_dim0)
+        self.ln2 = nn.LayerNorm(self.hidden_dim1)
+
         self.relu = nn.ReLU()
 
         torch.nn.init.uniform_(self.fc1.weight, a=-3e-3, b=3e-3)
@@ -135,8 +141,8 @@ class Actor(nn.Module):
         torch.nn.init.uniform_(self.fc3.weight, a=-3e-3, b=3e-3)
 
     def forward(self, obs):
-        output = self.relu(self.fc1(obs))
-        output = self.relu(self.fc2(output))
+        output = self.ln1(self.relu(self.fc1(obs)))
+        output = self.ln2(self.relu(self.fc2(output)))
         output = self.fc3(output)
 
-        return nn.Tanh()(output)
+        return nn.Tanh()(output) * self.scale

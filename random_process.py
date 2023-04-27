@@ -7,8 +7,8 @@ class GaussianNoise():
         self.tau = tau
 
     def reset(self):
-        self.noise = np.random.normal(size=self.size)
+        self.noise = np.random.normal(size=self.size, scale=0.1)
 
     def sample(self):
-        self.noise = np.random.normal(size=self.size) * self.tau + self.noise * (1 - self.tau)
+        self.noise = np.random.normal(size=self.size, scale=0.1) * self.tau + self.noise * (1 - self.tau)
         return self.noise

@@ -13,12 +13,16 @@ def train(args):
 
     while True:
         obs = env.reset()
+        total_reward = 0
         while True:
             action = agent.step(obs)
             next_obs, reward, terminated, _ = env.step(action)
             obs = next_obs
+            total_reward += reward
             if terminated:
                 break
+
+        print(total_reward)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

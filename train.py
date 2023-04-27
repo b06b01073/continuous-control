@@ -16,7 +16,7 @@ def train(args):
     action_dim, obs_dim = env.action_space.shape[0], env.observation_space.shape[0]
 
     agent = Agent(obs_dim=obs_dim, action_dim=action_dim, action_low=env.action_space.low, action_high=env.action_space.high)
-    buffer = replay_buffer.ReplayBuffer(capacity=1000000)
+    buffer = replay_buffer.ReplayBuffer(capacity=args.capacity)
 
     total_rewards = []
     ma = []
@@ -71,9 +71,10 @@ def train(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--batch_size', '-b', type=int, default=64)
+    parser.add_argument('--batch_size', '-b', type=int, default=128)
     parser.add_argument('--epoch', '-e', type=int, default=200)
     parser.add_argument('--env', type=str, default='LunarLanderContinuous-v2')
+    parser.add_argument('--capacity', '-c', type=int, default=100000)
 
     args = parser.parse_args()
 
