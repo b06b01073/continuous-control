@@ -15,7 +15,7 @@ def train(args):
     env = gym.make(args.env)
     action_dim, obs_dim = env.action_space.shape[0], env.observation_space.shape[0]
 
-    agent = Agent(obs_dim=obs_dim, action_dim=action_dim, action_low=env.action_space.low, action_high=env.action_space.high)
+    agent = Agent(obs_dim=obs_dim, action_dim=action_dim, action_low=env.action_space.low, action_high=env.action_space.high, sigma=args.sigma)
     buffer = replay_buffer.ReplayBuffer(capacity=args.capacity)
 
     total_rewards = []
@@ -27,7 +27,7 @@ def train(args):
         total_reward = 0
         obs = env.reset()
         agent.reset_noise()
-        while True:
+        for _ in range(args.max_iter):
             action = agent.step(obs)
             next_obs, reward, terminated, _ = env.step(action)
 
@@ -45,9 +45,12 @@ def train(args):
 
         total_rewards.append(total_reward)
         ma.append(total_reward)
+
+
         if len(ma) > 30:
             ma = ma[1:]
         means.append(sum(ma) / len(ma))
+
 
 
         if i % check_pts_interval == 0:
@@ -66,10 +69,13 @@ def train(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--batch_size', '-b', type=int, default=64)
+    parser.add_argument('--batch_size', '-b', type=int, default=128)
     parser.add_argument('--epoch', '-e', type=int, default=800)
     parser.add_argument('--env', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--capacity', '-c', type=int, default=100000)
+    parser.add_argument('--gradient_steps', '-g', type=int, default=100)
+    parser.add_argument('--sigma', '-s', type=float, default=0.2)
+    parser.add_argument('--max_iter', '-m', type=int, default=2000)
 
     args = parser.parse_args()
 

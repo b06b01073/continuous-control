@@ -15,7 +15,7 @@ def fanin_init(size, fanin=None):
     return torch.Tensor(size).uniform_(-v, v)
 
 class Agent(nn.Module):
-    def __init__(self, obs_dim, action_dim, action_low, action_high, gamma=0.99, tau=0.001, add_noise=True):
+    def __init__(self, obs_dim, action_dim, action_low, action_high, sigma=0.1, gamma=0.99, tau=0.001, add_noise=True):
         super().__init__()
 
         self.obs_dim = obs_dim
@@ -34,7 +34,7 @@ class Agent(nn.Module):
         self.hard_update(self.target_actor, self.actor)
         self.hard_update(self.target_critic, self.critic)
 
-        self.random_process = OrnsteinUhlenbeckProcess(size=action_dim, theta=0.15, mu=0.0, sigma=0.1)
+        self.random_process = OrnsteinUhlenbeckProcess(size=action_dim, theta=0.15, mu=0.0, sigma=sigma)
 
         self.mse = nn.MSELoss()
 
