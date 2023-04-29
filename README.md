@@ -2,7 +2,7 @@
 This repo is an implementation of the research paper "[Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)"(DDPG). 
 
 # Demo
-[![Demo](https://img.youtube.com/vi/qHvIlE1kGzc/0.jpg)](https://www.youtube.com/watch?v=qHvIlE1kGzc "Demo")
+[![Demo](https://img.youtube.com/vi/Mt7O2pCBmrY/0.jpg)](https://youtu.be/Mt7O2pCBmrY "Demo")
 
 # Files
 * train.py: train the agent
